@@ -180,3 +180,26 @@ func TestOrderAcceptsAnEmptyBatch(t *testing.T) {
 		t.Fatalf("want no results, got %v", idsOf(got))
 	}
 }
+
+// The sort key is not unique for every possible input: two results that name the
+// same message, carry the same label and see the same timestamp compare equal.
+// Validation rules that out by rejecting duplicate result ids, so this only
+// concerns unvalidated input. The sort is stable, so such a pair keeps its input
+// order instead of an arbitrary one, and this test pins that rather than leaving
+// it to the reader of the sort call.
+func TestOrderKeepsExactTiesInInputOrder(t *testing.T) {
+	messages := []priority.Message{msg("m", 9)}
+	first := res("m", priority.Today)
+	second := res("m", priority.Today)
+	second.Reasons = []priority.Reason{{Kind: priority.KindDirectQuestion, Quote: "second"}}
+
+	forward := priority.Order([]priority.Result{first, second}, messages)
+	if got := forward[0].Reasons[0].Quote; got != "body m" {
+		t.Fatalf("want the first input result to stay first, got %q", got)
+	}
+
+	backward := priority.Order([]priority.Result{second, first}, messages)
+	if got := backward[0].Reasons[0].Quote; got != "second" {
+		t.Fatalf("want the first input result to stay first, got %q", got)
+	}
+}

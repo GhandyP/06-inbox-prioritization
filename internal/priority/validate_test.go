@@ -231,6 +231,25 @@ func TestValidateRejectsAQuoteWithDifferentCase(t *testing.T) {
 	}
 }
 
+// Folding whitespace relaxes the rule by exactly one thing: layout. It must not
+// let a quote reach across the join between the subject and the body, because
+// that would accept text that appears in neither field.
+func TestValidateRejectsAQuoteThatSpansTheSubjectAndTheBody(t *testing.T) {
+	messages := []priority.Message{
+		{ID: "m1", Subject: "Quarterly", Body: "report follows"},
+	}
+	results := []priority.Result{
+		{
+			MessageID: "m1",
+			Label:     priority.Today,
+			Reasons:   []priority.Reason{{Kind: priority.KindDirectQuestion, Quote: "Quarterly report"}},
+		},
+	}
+
+	err := priority.Validate(messages, results)
+	mustHave(t, violationsOf(t, err), priority.RuleQuoteNotFound, "m1")
+}
+
 func TestValidateReportsEveryViolationNotJustTheFirst(t *testing.T) {
 	results := validResults()
 	results[0].Label = "high"

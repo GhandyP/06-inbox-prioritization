@@ -11,10 +11,14 @@ vocabulary, and keeping a mailbox out of reach.
 
 ## The two guarantees
 
-**Evidence you can check.** Every label must come with at least one reason whose quote is a literal
-substring of that message's subject or body. Validation rejects a label outside the closed set, a
-result for a message that is not in the batch, a message with no result, a result with no reason, and
-a quote that does not appear in the message.
+**Evidence you can check.** Every label must come with at least one reason whose quote appears in that
+message. The quote and the message are each collapsed so that every run of whitespace becomes a single
+space, and the quote must then be a substring of the subject or of the body, compared
+case-sensitively. A quote that differs only in line breaks and indentation is accepted, because models
+reproduce words reliably and mangle layout. A quote that changes a word, changes its case, reorders
+it, or spans the join between subject and body is refused. Validation likewise rejects a label outside
+the closed set, a result for a message that is not in the batch, a message with no result, and a
+result with no reason.
 
 This proves provenance, not entailment. It can prove that the quoted words exist in the message, and
 it cannot prove that those words justify the label. That judgement stays with the reviewer, which is
@@ -25,6 +29,11 @@ why the report prints the quote under every label instead of summarising it away
 scope string appears anywhere in it. The ADK agent is bound with no tools, no toolsets and no
 subagents, so there is no tool it could call, and a test asserts that this stays true. The reader
 interface has one method and nothing that could archive, delete, reply to, label, or mark a message.
+
+The scope names that would permit a mutation appear in this repository only where they exist to be
+forbidden: the test that scans for them and the test that proves a token granted one is refused. No
+code path requests one. That scan covers Go files and skips its own file, so it enforces the rule for
+every file that could request a scope rather than for prose.
 
 ## Quick start
 

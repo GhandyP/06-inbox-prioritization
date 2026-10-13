@@ -38,9 +38,18 @@ S8 — design decision, authorized by S3. No model-generated `score`. An LLM sco
 reproducible, and the case requires deterministic ordering. Order derives from data already present
 in the message: `labelRank(urgent=0, today=1, later=2, ignore=3)` -> `receivedAt` -> `messageID`.
 
-S9 — design decision, authorized by S3. `Reason{Kind, Quote}`, where `Quote` must be a literal
-substring of the message subject or body. No inferred due date and no `due_date` field. This proves
-provenance, not entailment.
+S9 — design decision, authorized by S3. `Reason{Kind, Quote}`, where `Quote` must appear in that
+message. No inferred due date and no `due_date` field. This proves provenance, not entailment.
+
+S9a — correction (T9b, found by independent verification). S9 said "literal substring", which the
+implementation does not enforce and was never meant to. The rule as implemented and tested is: the
+quote, the subject and the body are each collapsed so that every run of whitespace becomes one space
+and the ends are trimmed, and the quote must then be a substring of the subject or of the body,
+compared case-sensitively. So a quote that differs from the message only in line breaks and
+indentation is accepted, while a quote that changes a word, changes its case, reorders it, or spans
+the join between subject and body is refused. The loosening is deliberate: models reproduce words
+reliably and mangle layout, and folding stays visible to a reviewer who compares the printed quote
+against the message.
 
 S10 — project goal, quoted verbatim from the project's own README: "Classify supplied messages by
 urgency and explain the evidence for each priority without archiving, replying to, or deleting
@@ -48,8 +57,15 @@ messages."
 
 S11 — non-goal, quoted verbatim from the project's own README: "Keep archive, delete, and reply
 tools absent; require human approval before any future mailbox mutation." Hard rule: zero write
-scopes. `gmail.readonly` is a single constant with a test; `gmail.modify` and `gmail.send` must not
-appear anywhere in the tree.
+scopes. `gmail.readonly` is a single constant and no other scope is ever requested.
+
+S11a — correction (T9b, found by independent verification). S11 said `gmail.modify` and `gmail.send`
+"must not appear anywhere in the tree", and they do appear: in this document, in the scanning test that
+forbids them, and in the test token that proves a wider grant is refused. The precise claim, which
+holds, is: no code path requests any scope other than `gmail.readonly`, and the only occurrences of
+those strings are the ones that exist to forbid them or to prove they are refused. The scan covers
+`.go` files and skips its own file, so it enforces the rule for every file that could request a scope
+and says nothing about prose.
 
 Non-goals (v1): no mailbox mutation of any kind, no write scopes, no inferred due dates, no
 model-generated score, no Gmail push/watch, no attachment parsing, no multi-account support.
@@ -72,7 +88,8 @@ Commit identities are recorded as evidence once each task lands; they are never 
 | T5 | `internal/inbox/gmail`: OAuth installed-app adapter, single `gmail.readonly` scope, token cached outside the repo, scope test | S4, S6, S11 | inline + verifier | `7f8b3c3`, `9e54ae9` |
 | T6 | `internal/classifier`: schema-constrained ADK Go v2 agent, one session per batch, no mutating tools, with RED tests | S7, S9 | inline | `7859490` |
 | T7 | `internal/cli`: flags, wiring, text and JSON output, exit codes, with RED tests | S10 | inline | `f22a723` |
-| T8 | Honest README rewrite, Makefile, CI workflow (build, vet, gofmt, test), CHANGELOG | S2, S11 | inline | pending |
+| T8 | Honest README rewrite, Makefile, CI workflow (build, vet, gofmt, test), CHANGELOG | S2, S11 | inline | `3d0431f` |
+| T8b | Untrack the local CodeGraph index that a `git add -A` swept into T6's commit | S11 | inline | `855bb0d` |
 | T9 | Independent verification of the whole candidate | S1-S11 | verifier | pending |
 
 Every task closes with at least one work-unit commit on `main`. Tests and docs land alongside the
@@ -247,3 +264,25 @@ JSON, and a fixture with an empty id 1 with the typed `missing_id` rule on stder
 L26 — decision (T7). `-limit` defaults to 25 and a value below 1 is a usage error rather than
 "unlimited". Zero would otherwise have meant two different things depending on whether the flag was
 present, so the ambiguous value is refused instead.
+
+L27 — evidence (T8). Commit `3d0431f`. `make check` exit 0 (formatting, vet, tests). `make build`
+exit 0 and produced `bin/06-inbox-prioritization`, which the root `.gitignore` covers. The suite was
+re-run with `GOOGLE_API_KEY` empty to match the CI job's `env: GOOGLE_API_KEY: ""`, and stayed green,
+which is what makes the "no secrets needed" claim in the workflow honest. `.github/workflows/ci.yml`
+was parsed as YAML and reports one job, three triggers and six steps. The sample report in the README
+is labelled as the shape of the output rather than as captured output, because the labels in it come
+from a model and the suite never calls one.
+
+L28 — incident and fix (T8b). `git add -A` swept `.codegraph/.gitignore` into commit `7859490` (T6).
+The `.codegraph` directory ships its own `.gitignore` whose body is `*` plus `!.gitignore`, so the rule
+meant to keep the directory out of the repository instead made exactly one file in it trackable. The
+root `.gitignore` now ignores `.codegraph/` outright, the file is untracked in `855bb0d`, and
+`git ls-files | grep -c codegraph` reports zero. The artifact never reached origin: `origin/main` was
+still `9e54ae9` at the time of the fix, and `git branch --contains 7859490 --all` listed only `main`.
+History was deliberately not rewritten, because forcing a push over local commits is destructive and
+was not authorised. Lesson for the rest of this series: a tool directory that ships its own
+`.gitignore` can defeat the outer ignore rule, so `git status` should be read before every `add -A`.
+
+L29 — status after T8. Local `main` is four commits ahead of `origin/main`. Push remains a user
+decision and was not taken again: the earlier authorisation named the six commits that existed at
+that moment.

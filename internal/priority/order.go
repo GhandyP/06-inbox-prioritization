@@ -17,10 +17,15 @@ import (
 // agrees. This replaces the score the earlier design proposed, because a
 // model-generated score would not be reproducible.
 //
-// Callers are expected to run Validate first. Order stays total when they have
-// not: a result whose label is unknown sorts after every known label, and a
-// result whose message is absent sorts after every result that has one. Among
-// themselves those stragglers order by message ID.
+// Callers are expected to run Validate first. Order still behaves sensibly when
+// they have not: a result whose label is unknown sorts after every known label,
+// and a result whose message is absent sorts after every result that has one.
+// Among themselves those stragglers order by message ID.
+//
+// The key is not unique for every possible input. Two results that name the same
+// message, carry the same label and see the same timestamp compare equal, which
+// validation rules out by rejecting duplicate result ids. The sort is stable, so
+// such a pair keeps its input order rather than picking an arbitrary one.
 //
 // The input slice is not modified.
 func Order(results []Result, messages []Message) []Result {
