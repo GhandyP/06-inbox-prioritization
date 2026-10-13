@@ -1,68 +1,30 @@
-# 06 — Prioritize the inbox
+# 06-inbox-prioritization
 
-## Goal
+Prioritize an inbox: classify supplied messages by urgency and explain the evidence for each
+priority, without archiving, replying to, or deleting messages.
 
-Classify supplied messages by urgency and explain the evidence for each priority without archiving, replying to, or deleting messages.
+Built on [Google ADK for Go](https://github.com/google/adk-go) v2 and Gemini.
 
-## Run the current prototype
+> **Status: under construction.** The inherited prototype was removed and this repository is being
+> rebuilt from scratch as a standalone project. See
+> [`odd/tasks/inbox-prioritization-v1.md`](odd/tasks/inbox-prioritization-v1.md) for the plan, the
+> specs, and the current task.
 
-From this case directory:
+## Why the previous version did not run
 
-```bash
-export GOOGLE_API_KEY="your-key"
-go run .
-```
+The earlier README told you to run `go run .`. That did not work, and it is worth recording why:
 
-`internal/adkhelper.Run` uses ADK Go v2.2.0, Gemini, and `gemini-flash-latest`; set `ADK_MODEL` to override the model.
+- `main.go` imported `github.com/GhandyP/adk-go-enterprise-cookbook/internal/adkhelper`
+- that package lives in a **private** repository, and the public import path does not resolve
+- the repository had no `go.mod` at all
 
-Sample prompt:
+The prototype was copied out of its parent project without its module scaffold. This rewrite keeps
+the project self-contained so the same thing cannot happen again.
 
-```text
-Prioritize these five messages and explain each label.
-```
+## Run
 
-## What exists now
+Not available yet. The CLI is wired by T7; until then the binary reports that it is not wired.
 
-- `main.go (exists)` invokes one focused Gemini ADK agent with user-supplied message text.
-- The response has no stable message IDs, closed label set, score, evidence span, or deterministic ordering.
-- This is intentionally text-only: it does not read an inbox or perform any mailbox action.
+## License
 
-## Missing elements
-
-- **Contract:** Define `MessageBatch{messages[]}` -> `PriorityResult{messageID, label, score, reasons[], sortKey}[]`, with labels such as `urgent`, `normal`, and `low`.
-- **ADK layer:** Add a schema-constrained classifier and a session per batch; use a future `list_inbox` function tool only for read access.
-- **Domain boundary:** Add inbox-reader and timezone/business-calendar adapters, plus a deterministic sorter that handles ties.
-- **Fixtures and validation:** Include deadline language, VIP context, newsletters, duplicates, and empty batches; test label closure and stable ordering.
-- **Safety:** Keep archive, delete, and reply tools absent; require human approval before any future mailbox mutation.
-
-## Target structure
-
-```text
-06-inbox-prioritization/
-├── main.go (exists)
-├── README.md (exists)
-├── schema.go (next)
-├── classifier.go (next)
-├── service.go (next)
-├── testdata/messages.json (next)
-└── main_test.go (next)
-```
-
-## Implementation order
-
-1. Define message IDs, urgency labels, scores, reasons, and tie rules.
-2. Add schema validation and a batch session around the classifier.
-3. Implement deterministic sorting and optional inbox-reader boundaries.
-4. Test deadlines, duplicates, newsletters, and missing metadata.
-5. Add only a dry-run mailbox action after a human reviews priorities.
-
-## Done when
-
-- [ ] Every input message appears exactly once with a valid label and reason.
-- [ ] Equal scores sort deterministically and malformed output is rejected.
-- [ ] Fixtures cover urgent, routine, noisy, duplicate, and empty inputs.
-- [ ] No archive, delete, or reply occurs without explicit human approval.
-
-## Next improvement
-
-Replace free-form labels with a closed `PriorityResult` schema and deterministic tie-breaking.
+MIT. See [LICENSE](LICENSE).

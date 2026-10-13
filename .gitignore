@@ -1,0 +1,27 @@
+# Build output
+/06-inbox-prioritization
+*.exe
+*.test
+*.out
+
+# Coverage
+coverage.*
+
+# Credentials and tokens — never commit these
+.env
+*.env
+credentials.json
+client_secret*.json
+token.json
+token-*.json
+
+# Editor and OS
+.idea/
+.vscode/
+.DS_Store
+
+# Agent tooling
+.atl/
+
+# Local scratch
+/tmp/
