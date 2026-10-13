@@ -68,7 +68,7 @@ Commit identities are recorded as evidence once each task lands; they are never 
 | T1 | Reset: drop the inherited prototype, MIT LICENSE, `.gitignore`, own `go.mod`, `main.go` that compiles without `internal/adkhelper` | S1, S2, S5 | inline | `3808223` |
 | T2 | Contract + validation in `internal/priority` (closed label set, ID closure, literal-quote check, typed errors) with RED tests | S7, S9, S10 | inline | `ba05773` |
 | T3 | Deterministic ordering in `internal/priority` (`labelRank` -> `receivedAt` -> `messageID`, reproducible ties) with RED tests | S8 | inline | `fdc21bc` |
-| T4 | `internal/inbox`: `Message` + `Reader` interface + JSON fixture adapter + edge-case fixtures in `testdata/` with RED tests | S9, S10 | inline | pending |
+| T4 | `internal/inbox`: `Message` + `Reader` interface + JSON fixture adapter + edge-case fixtures in `testdata/` with RED tests | S9, S10 | inline | `7fb75b6` |
 | T5 | `internal/inbox/gmail`: OAuth installed-app adapter, single `gmail.readonly` scope, token cached outside the repo, scope test | S4, S6, S11 | inline + verifier | pending |
 | T6 | `internal/classifier`: schema-constrained ADK Go v2 agent, one session per batch, no mutating tools, with RED tests | S7, S9 | inline | pending |
 | T7 | `internal/cli`: flags, wiring, text and JSON output, exit codes, with RED tests | S10 | inline | pending |
@@ -155,3 +155,14 @@ L14 — evidence (T3). Commit `fdc21bc`. RED was observed as ten build errors
 under `-count=1`; `go build ./...`, `go vet ./...` and `gofmt -l .` all clean. `Order` uses
 `slices.SortStableFunc` with a `cmp.Compare` key so the comparison is total and the function never
 mutates its input, which is asserted by a test.
+
+L15 — evidence (T4). Commit `7fb75b6`. RED was observed as
+`no non-test Go files in .../internal/inbox [build failed]`, exit 1. GREEN as
+`ok github.com/GhandyP/06-inbox-prioritization/internal/inbox` with 13 test functions, 40 passing
+across the module under `-count=1`; `go build ./...`, `go vet ./...` and `gofmt -l .` all clean. Two
+sloppy helpers and a meaningless `errors.Is(err, err)` were removed from the test file before GREEN
+rather than committed. Committed fixtures are `testdata/messages_ok.json`,
+`testdata/messages_empty.json` and `testdata/messages_missing_metadata.json`; malformed-input cases
+are written to `t.TempDir()` instead of being committed, and `TestCommittedFixturesParse` guards the
+committed ones against rot. `priority.Message`, `Reason` and `Result` gained `json` tags here
+because the fixture and the T7 output both need them.
