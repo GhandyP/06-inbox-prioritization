@@ -31,6 +31,19 @@ func Labels() []Label {
 	return []Label{Urgent, Today, Later, Ignore}
 }
 
+// Rank returns the position of the label in Labels, so the closed vocabulary
+// doubles as a total order over labels. An unknown label returns -1, which is a
+// query result rather than a sort key: Order maps unknown labels past every known
+// label instead of letting -1 sort them first.
+func (l Label) Rank() int {
+	for i, known := range Labels() {
+		if l == known {
+			return i
+		}
+	}
+	return -1
+}
+
 // Kind names why a message got its label. The set is closed so the classifier
 // cannot invent a justification category.
 type Kind string
