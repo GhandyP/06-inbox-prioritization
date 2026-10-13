@@ -71,7 +71,7 @@ Commit identities are recorded as evidence once each task lands; they are never 
 | T4 | `internal/inbox`: `Message` + `Reader` interface + JSON fixture adapter + edge-case fixtures in `testdata/` with RED tests | S9, S10 | inline | `7fb75b6` |
 | T5 | `internal/inbox/gmail`: OAuth installed-app adapter, single `gmail.readonly` scope, token cached outside the repo, scope test | S4, S6, S11 | inline + verifier | `7f8b3c3`, `9e54ae9` |
 | T6 | `internal/classifier`: schema-constrained ADK Go v2 agent, one session per batch, no mutating tools, with RED tests | S7, S9 | inline | `7859490` |
-| T7 | `internal/cli`: flags, wiring, text and JSON output, exit codes, with RED tests | S10 | inline | pending |
+| T7 | `internal/cli`: flags, wiring, text and JSON output, exit codes, with RED tests | S10 | inline | `f22a723` |
 | T8 | Honest README rewrite, Makefile, CI workflow (build, vet, gofmt, test), CHANGELOG | S2, S11 | inline | pending |
 | T9 | Independent verification of the whole candidate | S1-S11 | verifier | pending |
 
@@ -233,3 +233,17 @@ L24 — decision (T6). `Responder` is exported even though `ADKResponder` is the
 implementation, because it is the seam that keeps the suite offline. Keeping it unexported and testing
 through an internal file would have hidden the contract from callers and made the agent untestable
 from outside the package.
+
+L25 — evidence (T7). Commit `f22a723`. RED as `no non-test Go files in .../internal/cli [build failed]`,
+exit 1. GREEN: 18 test functions in `internal/cli`, 86 across the module (27 priority + 13 inbox +
+12 gmail + 16 classifier + 18 cli). `go build ./...` exit 0, `go vet ./...` exit 0, `gofmt -l .`
+clean. `Deps.Classify` gained an `Options` parameter during GREEN so `-model` could reach the agent
+without an environment side effect, and the three test stubs were updated in the same step. Exit
+codes were verified against a built binary rather than through `go run`, because an earlier smoke run
+piped into `head` and reported a misleading 141 (SIGPIPE) for a successful command: `-h` 0, no source
+2, both sources 2, `-limit 0` 2, missing file 1, `testdata/messages_empty.json` 0 in both text and
+JSON, and a fixture with an empty id 1 with the typed `missing_id` rule on stderr.
+
+L26 — decision (T7). `-limit` defaults to 25 and a value below 1 is a usage error rather than
+"unlimited". Zero would otherwise have meant two different things depending on whether the flag was
+present, so the ambiguous value is refused instead.

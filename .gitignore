@@ -1,5 +1,6 @@
 # Build output
 /06-inbox-prioritization
+bin/
 *.exe
 *.test
 *.out
