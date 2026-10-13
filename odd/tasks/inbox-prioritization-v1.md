@@ -90,7 +90,8 @@ Commit identities are recorded as evidence once each task lands; they are never 
 | T7 | `internal/cli`: flags, wiring, text and JSON output, exit codes, with RED tests | S10 | inline | `f22a723` |
 | T8 | Honest README rewrite, Makefile, CI workflow (build, vet, gofmt, test), CHANGELOG | S2, S11 | inline | `3d0431f` |
 | T8b | Untrack the local CodeGraph index that a `git add -A` swept into T6's commit | S11 | inline | `855bb0d` |
-| T9 | Independent verification of the whole candidate | S1-S11 | verifier | pending |
+| T9 | Independent verification of the whole candidate | S1-S11 | verifier | see L30 |
+| T9b | Fix the three claims verification found broader than the code, and pin them with tests | S9a, S11a | inline | `fca26be` |
 
 Every task closes with at least one work-unit commit on `main`. Tests and docs land alongside the
 behavior they describe. Push and pull requests stay a user decision.
@@ -286,3 +287,31 @@ was not authorised. Lesson for the rest of this series: a tool directory that sh
 L29 — status after T8. Local `main` is four commits ahead of `origin/main`. Push remains a user
 decision and was not taken again: the earlier authorisation named the six commits that existed at
 that moment.
+
+L30 — independent verification (T9) and its fixes (T9b). A read-only `gentle-ai-verify` subagent ran
+the five package suites and `make check`, all green, and then probed the claims most likely to be
+overstated. It worked on a scratch copy with the module proxy off and added a `.git` marker there only,
+because the token-path test needs to find a repository root, and it reported that method itself. It
+found three defects, each a claim broader than the code rather than a fault in behavior:
+
+1. S9 said the quote must be a literal substring. The implementation whitespace-folds both sides
+   first, so `"Quarterly report"` is accepted against a subject of `"Quarterly\nreport"`.
+2. S11 said `gmail.modify` and `gmail.send` must not appear anywhere in the tree. They do appear: in
+   this document, in the scanning test, and in the test token that proves a wider grant is refused.
+3. `Order`'s comment promised a total order even for unvalidated input, but two results that share a
+   message, a label and a timestamp compare equal.
+
+It also confirmed claims rather than only attacking them: the agent configuration binds no tool,
+`toolset`, subagent or tool callback; a quote spanning the subject/body join is refused; the suite
+passes with `GOOGLE_API_KEY` unset; and `git ls-files` carries no `.codegraph`, `.atl` or `bin` path.
+
+Fixes are in `fca26be`. S9a and S11a now state the rules precisely, `Order`'s comment says what is
+true, and two tests pin the boundaries: a quote must not span the subject/body join, and exact ties
+keep their input order. No behavior changed, so those two are characterization tests that pass against
+the code as it already was; they were not written test-first, because there was no behavior to make
+fail first.
+
+L31 — residual, carried to the close. `authorizeWithBrowser` remains the only path that no test
+exercises, and the real Gmail consent flow has never been run, because no OAuth client exists yet,
+which is what S6 accepted. Everything else in the candidate is covered by 88 tests and a green
+`make check`.
