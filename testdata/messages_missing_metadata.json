@@ -1,0 +1,18 @@
+{
+  "messages": [
+    {
+      "id": "m-101",
+      "sender": "",
+      "subject": "",
+      "body": "ok",
+      "received_at": "2026-10-13T08:00:00Z"
+    },
+    {
+      "id": "m-102",
+      "sender": "someone@example.com",
+      "subject": "",
+      "body": "",
+      "received_at": "2026-10-13T08:05:00Z"
+    }
+  ]
+}

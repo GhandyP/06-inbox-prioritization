@@ -1,0 +1,39 @@
+{
+  "messages": [
+    {
+      "id": "m-001",
+      "sender": "ana.ruiz@example.com",
+      "subject": "Invoice 8841 due Friday",
+      "body": "Hi, please confirm the amount on invoice 8841 before Friday. Finance closes the quarter on Monday and I need the figure signed off.",
+      "received_at": "2026-10-13T09:12:00Z"
+    },
+    {
+      "id": "m-002",
+      "sender": "newsletter@vendor.example.com",
+      "subject": "Ten links you may have missed this week",
+      "body": "Our weekly digest of product news, hiring posts and conference talks. You are receiving this because you subscribed.",
+      "received_at": "2026-10-13T09:30:00Z"
+    },
+    {
+      "id": "m-003",
+      "sender": "marcela@example.com",
+      "subject": "Re: Invoice 8841 due Friday",
+      "body": "I can confirm the amount on invoice 8841 before Friday if you send me the copy you have.",
+      "received_at": "2026-10-13T10:05:00Z"
+    },
+    {
+      "id": "m-004",
+      "sender": "noreply@monitoring.example.com",
+      "subject": "Nightly backup completed",
+      "body": "Backup job 4412 completed at 03:00 with no errors.",
+      "received_at": "2026-10-13T03:00:00Z"
+    },
+    {
+      "id": "m-005",
+      "sender": "",
+      "subject": "",
+      "body": "ok",
+      "received_at": "2026-10-13T11:45:00Z"
+    }
+  ]
+}

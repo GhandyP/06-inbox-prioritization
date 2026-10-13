@@ -70,11 +70,11 @@ func Kinds() []Kind {
 // Message is one message to prioritize. ReceivedAt is supplied by the reader and
 // is never inferred by the classifier.
 type Message struct {
-	ID         string
-	Sender     string
-	Subject    string
-	Body       string
-	ReceivedAt time.Time
+	ID         string    `json:"id"`
+	Sender     string    `json:"sender"`
+	Subject    string    `json:"subject"`
+	Body       string    `json:"body"`
+	ReceivedAt time.Time `json:"received_at"`
 }
 
 // Reason is one piece of evidence for a label.
@@ -86,15 +86,15 @@ type Message struct {
 // prove those words justify the label. That judgement stays with the reviewer,
 // which is why the output prints the quote next to every label.
 type Reason struct {
-	Kind  Kind
-	Quote string
+	Kind  Kind   `json:"kind"`
+	Quote string `json:"quote"`
 }
 
 // Result is the classification of exactly one message.
 type Result struct {
-	MessageID string
-	Label     Label
-	Reasons   []Reason
+	MessageID string   `json:"message_id"`
+	Label     Label    `json:"label"`
+	Reasons   []Reason `json:"reasons"`
 }
 
 // Rule identifies which contract rule a violation broke.
