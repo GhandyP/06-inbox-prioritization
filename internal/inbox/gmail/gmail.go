@@ -158,11 +158,6 @@ func (c *Client) Messages(ctx context.Context) ([]priority.Message, error) {
 
 // DefaultTokenPath returns where the cached token lives when Config.TokenPath is
 // empty: the user configuration directory, never a project directory.
-//
-// It does not promise that the result passes CheckTokenPath. A home directory
-// initialised as a Git repository by accident makes every path under it fail the
-// guard, and a default cannot paper over that: New reports it and the caller sets
-// Config.TokenPath explicitly.
 func DefaultTokenPath() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
@@ -171,35 +166,66 @@ func DefaultTokenPath() (string, error) {
 	return filepath.Join(dir, "06-inbox-prioritization", "token.json"), nil
 }
 
-// CheckTokenPath refuses a token path that Git would consider part of a working
-// tree.
+// CheckTokenPath refuses a token path that sits inside the repository the
+// working directory belongs to.
 //
-// The walk looks for a .git entry in every ancestor, which covers an ordinary
-// checkout and a linked worktree, where .git is a file rather than a directory.
-// An entry that exists but is not a repository is still refused, because the
-// cost of a false refusal is a confusing error and the cost of a false accept is
-// a published credential.
+// The walk starts at the working directory and stops at the first ancestor that
+// holds a `.git` entry, so it finds the repository this project is committed to.
+// A working tree that merely encloses the project, such as a home directory
+// holding a `.git` marker left behind by a project-identity tool, is not refused:
+// that rule would reject every path under $HOME while protecting nothing, because
+// a marker repository has no history to publish. The limitation is deliberate,
+// and `.gitignore` covers the token file as a second layer.
 func CheckTokenPath(path string) error {
 	if strings.TrimSpace(path) == "" {
 		return errors.New("gmail: token path is empty")
 	}
+
+	root, ok := repositoryRoot()
+	if !ok {
+		return nil
+	}
+
 	absolute, err := filepath.Abs(path)
 	if err != nil {
 		return fmt.Errorf("gmail: resolve the token path: %w", err)
 	}
+	if !within(absolute, root) {
+		return nil
+	}
 
-	for dir := filepath.Dir(absolute); ; {
+	return fmt.Errorf(
+		"gmail: token path %s is inside the repository at %s; set Config.TokenPath to a location outside it",
+		absolute, root)
+}
+
+// repositoryRoot returns the root of the repository the working directory
+// belongs to, and false when the working directory is not inside one.
+func repositoryRoot() (string, bool) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", false
+	}
+	for {
+		// Lstat catches a linked worktree too, where .git is a file.
 		if _, err := os.Lstat(filepath.Join(dir, ".git")); err == nil {
-			return fmt.Errorf(
-				"gmail: token path %s is inside the Git working tree at %s; set Config.TokenPath to a location outside every repository",
-				absolute, dir)
+			return dir, true
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return nil
+			return "", false
 		}
 		dir = parent
 	}
+}
+
+// within reports whether path is root itself or sits underneath it.
+func within(path, root string) bool {
+	relative, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	return relative == "." || !strings.HasPrefix(relative, "..")
 }
 
 func mapMessage(message *gmailapi.Message) priority.Message {

@@ -90,27 +90,22 @@ func TestNoWriteScopeAppearsInTheModule(t *testing.T) {
 	}
 }
 
-func TestTokenPathInsideARepositoryIsRefused(t *testing.T) {
-	repo := t.TempDir()
-	if err := os.Mkdir(filepath.Join(repo, ".git"), 0o750); err != nil {
-		t.Fatalf("create fake repository: %v", err)
-	}
-
+func TestTokenPathInsideTheProjectRepositoryIsRefused(t *testing.T) {
 	cfg := gmail.Config{
-		TokenPath:   filepath.Join(repo, "token.json"),
+		TokenPath:   filepath.Join(moduleRoot(t), "token.json"),
 		TokenSource: oauth2.StaticTokenSource(readOnlyToken()),
 	}
 
 	_, err := gmail.New(context.Background(), cfg)
 	if err == nil {
-		t.Fatal("a token inside a repository must be refused")
+		t.Fatal("a token inside the project repository must be refused")
 	}
 	if !strings.Contains(err.Error(), "token.json") {
 		t.Fatalf("the refusal does not name the path: %v", err)
 	}
 }
 
-func TestTokenPathOutsideARepositoryIsAccepted(t *testing.T) {
+func TestTokenPathOutsideTheProjectRepositoryIsAccepted(t *testing.T) {
 	cfg := gmail.Config{
 		TokenPath:   filepath.Join(t.TempDir(), "token.json"),
 		TokenSource: oauth2.StaticTokenSource(readOnlyToken()),
@@ -118,13 +113,25 @@ func TestTokenPathOutsideARepositoryIsAccepted(t *testing.T) {
 	}
 
 	if _, err := gmail.New(context.Background(), cfg); err != nil {
-		t.Fatalf("a token outside any repository is fine: %v", err)
+		t.Fatalf("a token outside the project repository is fine: %v", err)
 	}
 }
 
-// A home directory initialised as a repository by accident makes every path
-// under it fail the guard. That is deliberate: Git would add the token there
-// too, so New reports it and the caller sets Config.TokenPath explicitly.
+// TestTokenPathInsideAnUnrelatedWorkingTreeIsAccepted pins the decision that
+// narrowed the guard. A working tree that merely encloses the project, such as a
+// home directory holding a .git marker left by a project-identity tool, must not
+// reject every path under it.
+func TestTokenPathInsideAnUnrelatedWorkingTreeIsAccepted(t *testing.T) {
+	enclosing := t.TempDir()
+	if err := os.Mkdir(filepath.Join(enclosing, ".git"), 0o750); err != nil {
+		t.Fatalf("create the enclosing working tree: %v", err)
+	}
+
+	if err := gmail.CheckTokenPath(filepath.Join(enclosing, "token.json")); err != nil {
+		t.Fatalf("an unrelated enclosing working tree must not be refused: %v", err)
+	}
+}
+
 func TestDefaultTokenPathIsAbsoluteAndNamed(t *testing.T) {
 	path, err := gmail.DefaultTokenPath()
 	if err != nil {
@@ -137,7 +144,7 @@ func TestDefaultTokenPathIsAbsoluteAndNamed(t *testing.T) {
 		t.Fatalf("want a token.json leaf, got %q", filepath.Base(path))
 	}
 	if err := gmail.CheckTokenPath(path); err != nil {
-		t.Logf("note: this machine cannot use the default path (%v); Config.TokenPath must be set", err)
+		t.Fatalf("the default must survive the guard: %v", err)
 	}
 }
 

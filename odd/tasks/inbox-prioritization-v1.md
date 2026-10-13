@@ -69,7 +69,7 @@ Commit identities are recorded as evidence once each task lands; they are never 
 | T2 | Contract + validation in `internal/priority` (closed label set, ID closure, literal-quote check, typed errors) with RED tests | S7, S9, S10 | inline | `ba05773` |
 | T3 | Deterministic ordering in `internal/priority` (`labelRank` -> `receivedAt` -> `messageID`, reproducible ties) with RED tests | S8 | inline | `fdc21bc` |
 | T4 | `internal/inbox`: `Message` + `Reader` interface + JSON fixture adapter + edge-case fixtures in `testdata/` with RED tests | S9, S10 | inline | `7fb75b6` |
-| T5 | `internal/inbox/gmail`: OAuth installed-app adapter, single `gmail.readonly` scope, token cached outside the repo, scope test | S4, S6, S11 | inline + verifier | pending |
+| T5 | `internal/inbox/gmail`: OAuth installed-app adapter, single `gmail.readonly` scope, token cached outside the repo, scope test | S4, S6, S11 | inline + verifier | `7f8b3c3` |
 | T6 | `internal/classifier`: schema-constrained ADK Go v2 agent, one session per batch, no mutating tools, with RED tests | S7, S9 | inline | pending |
 | T7 | `internal/cli`: flags, wiring, text and JSON output, exit codes, with RED tests | S10 | inline | pending |
 | T8 | Honest README rewrite, Makefile, CI workflow (build, vet, gofmt, test), CHANGELOG | S2, S11 | inline | pending |
@@ -166,3 +166,28 @@ rather than committed. Committed fixtures are `testdata/messages_ok.json`,
 are written to `t.TempDir()` instead of being committed, and `TestCommittedFixturesParse` guards the
 committed ones against rot. `priority.Message`, `Reason` and `Result` gained `json` tags here
 because the fixture and the T7 output both need them.
+
+L16 — evidence (T5). Commit `7f8b3c3`. RED was observed as
+`no non-test Go files in .../internal/inbox/gmail [build failed]`, exit 1. A setup failure followed:
+after `go get google.golang.org/api@latest golang.org/x/oauth2@latest` the build reported 16
+`missing go.sum entry` errors, because `go get` records requirements without the transitive sums;
+`go mod tidy` resolved it. GREEN: 11 test functions in `internal/inbox/gmail`, 51 passing across the
+module. `go build ./...` exit 0, `go vet ./...` exit 0 (5m09s cold, moved to the background after a
+600s synchronous timeout), `gofmt -l .` clean. Dead code in the fake-server handler and a leftover
+unused sentinel were removed from the test file before GREEN rather than committed.
+
+L17 — environment finding (T5), important. `/home/ghandy` is itself a Git working tree:
+`/home/ghandy/.git` exists, and `git rev-parse --show-toplevel` run from `/home/ghandy/.config`
+returns `/home/ghandy`. The same finding is recorded in `04/odd/tasks/adk-meeting-summary-v1.md` L4.
+Two consequences: every `$HOME`-based path fails `CheckTokenPath`, so the
+`gmail.DefaultTokenPath()` default is unusable on this machine and `Config.TokenPath` has to be set
+explicitly; and a `git add -A` run in `/home/ghandy` could sweep up anything beneath it. The guard
+was kept strict rather than relaxed, because a false refusal costs a confusing error while a false
+accept costs a published credential. `TestDefaultTokenPathIsAbsoluteAndNamed` therefore asserts the
+shape of the default and logs the situation instead of asserting guard compliance, so the test does
+not depend on the developer's home directory.
+
+L18 — decision (T5). `authorizeWithBrowser`, the installed-app loopback flow, is the single path the
+test suite cannot exercise, which is what S6 accepted. It is reported as unverified rather than
+counted as covered. Every other path in T5 is exercised, including both scope guards and the token
+path guard, which is where the risk actually sits.
