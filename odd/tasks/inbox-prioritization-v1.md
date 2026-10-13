@@ -64,8 +64,8 @@ Commit identities are recorded as evidence once each task lands; they are never 
 
 | ID | Task | Specs | Route | Commit |
 | --- | --- | --- | --- | --- |
-| T0 | ODD tracking: this document | S2, S5 | inline | recorded below |
-| T1 | Reset: drop the inherited prototype, MIT LICENSE, `.gitignore`, own `go.mod`, `main.go` that compiles without `internal/adkhelper` | S1, S2, S5 | inline | recorded below |
+| T0 | ODD tracking: this document | S2, S5 | inline | `52360ad` |
+| T1 | Reset: drop the inherited prototype, MIT LICENSE, `.gitignore`, own `go.mod`, `main.go` that compiles without `internal/adkhelper` | S1, S2, S5 | inline | `3808223` |
 | T2 | Contract + validation in `internal/priority` (closed label set, ID closure, literal-quote check, typed errors) with RED tests | S7, S9, S10 | inline | pending |
 | T3 | Deterministic ordering in `internal/priority` (`labelRank` -> `receivedAt` -> `messageID`, reproducible ties) with RED tests | S8 | inline | pending |
 | T4 | `internal/inbox`: `Message` + `Reader` interface + JSON fixture adapter + edge-case fixtures in `testdata/` with RED tests | S9, S10 | inline | pending |
@@ -115,3 +115,22 @@ L8 — decision (T1). Dependencies arrive with the code that first imports them,
 `go mod tidy`-clean: T1 establishes a dependency-free module, the Gmail and OAuth libraries land at
 T5, and `google.golang.org/adk/v2` is pinned at T6 once `internal/classifier` imports it. `go.sum`
 therefore appears at T5, not at T1.
+
+L9 — decision (T1). Work lands directly on `main`, matching the user's established preference for
+this project series ("Directo a main", recorded in `04/odd/tasks/adk-meeting-summary-v1.md` L3) and
+the practice of both published siblings, `02-professional-email-drafting` and
+`04-meeting-transcription-summary`. This overrides the general branch-first-on-default guidance
+because a prior explicit user decision covers this series. Commits stay **local**: push and pull
+request creation remain user decisions and were not requested.
+
+L10 — decision (T1). The `go` directive is pinned to `1.26.6` up front rather than raised later. A
+probe showed `google.golang.org/adk/v2@v2.6.0` requires `go >= 1.26.6`, so declaring the floor at T1
+avoids a mid-project toolchain move and keeps `go-version-file: go.mod` stable in CI. The local
+toolchain is go1.26.4 and auto-switches to the required toolchain, which was verified to work.
+
+L11 — evidence (T1). Commit `3808223` on `main`. Checks: `go build ./...` exit 0, `go vet ./...`
+exit 0, `gofmt -l .` clean, `go list -m` reports `go=1.26.6`, tracked files are `.gitignore`,
+`LICENSE`, `README.md`, `go.mod`, `main.go`, `odd/tasks/inbox-prioritization-v1.md`. `go run .`
+prints "06-inbox-prioritization: not wired yet; see odd/tasks/inbox-prioritization-v1.md" and exits
+non-zero, so no commit claims a working CLI before T7. The old `README.md` claim that `go run .`
+worked is replaced by a section documenting why it could not.
