@@ -69,7 +69,7 @@ Commit identities are recorded as evidence once each task lands; they are never 
 | T2 | Contract + validation in `internal/priority` (closed label set, ID closure, literal-quote check, typed errors) with RED tests | S7, S9, S10 | inline | `ba05773` |
 | T3 | Deterministic ordering in `internal/priority` (`labelRank` -> `receivedAt` -> `messageID`, reproducible ties) with RED tests | S8 | inline | `fdc21bc` |
 | T4 | `internal/inbox`: `Message` + `Reader` interface + JSON fixture adapter + edge-case fixtures in `testdata/` with RED tests | S9, S10 | inline | `7fb75b6` |
-| T5 | `internal/inbox/gmail`: OAuth installed-app adapter, single `gmail.readonly` scope, token cached outside the repo, scope test | S4, S6, S11 | inline + verifier | `7f8b3c3` |
+| T5 | `internal/inbox/gmail`: OAuth installed-app adapter, single `gmail.readonly` scope, token cached outside the repo, scope test | S4, S6, S11 | inline + verifier | `7f8b3c3`, `9e54ae9` |
 | T6 | `internal/classifier`: schema-constrained ADK Go v2 agent, one session per batch, no mutating tools, with RED tests | S7, S9 | inline | pending |
 | T7 | `internal/cli`: flags, wiring, text and JSON output, exit codes, with RED tests | S10 | inline | pending |
 | T8 | Honest README rewrite, Makefile, CI workflow (build, vet, gofmt, test), CHANGELOG | S2, S11 | inline | pending |
@@ -191,3 +191,28 @@ L18 — decision (T5). `authorizeWithBrowser`, the installed-app loopback flow, 
 test suite cannot exercise, which is what S6 accepted. It is reported as unverified rather than
 counted as covered. Every other path in T5 is exercised, including both scope guards and the token
 path guard, which is where the risk actually sits.
+
+L19 — user decisions (verbatim): "Acotar al repo del proyecto" and "Sí, pushear a origin/main".
+The first narrows `CheckTokenPath` to the repository the working directory belongs to; the second
+pushes six commits. The user first declined to read the questionnaire, so it was re-asked with shorter
+labels.
+
+L20 — environment finding (correction of L17). `/home/ghandy/.git` is **not** a user repository. It
+holds `engram-project-identity.json`, has zero commits, no remotes and three index entries, and was
+created on 2026-09-24: it is a project-identity marker left by the memory provider. It must not be
+deleted without checking first, because Engram's project detection depends on it. The guard was
+narrowed in response, not the marker removed.
+
+L21 — evidence (T5 revision and first push). Commit `9e54ae9` on `main`. The guard walk now starts at
+the working directory instead of at the token path, so an unrelated enclosing working tree no longer
+rejects every path under it; a new test asserts that acceptance, so narrowing further would need a
+test change too. 12 test functions in `internal/inbox/gmail`, 52 across the module, all green under
+`-count=1`; `go build ./...` exit 0 and `gofmt -l .` clean. `git push origin main` advanced
+`adda593..9e54ae9`; `git ls-remote origin` and the local `HEAD` both report
+`9e54ae91ecf38cf4d5c890c010603ff7b04d5106`, and `gh repo view` reports `PUBLIC` with
+`pushedAt 2026-10-13T17:58:01Z`. This is the first push; every earlier commit was local only.
+
+L22 — the memory provider was unavailable from T5 onward: every memory call timed out against
+`http://127.0.0.1:7437`, including after the server accepted the connection. This document is
+therefore the only durable record of T1-T5, and the standard memory mirror was not written. The
+failure is reported, not retried into extra ceremony.
