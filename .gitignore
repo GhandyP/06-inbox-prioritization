@@ -23,6 +23,7 @@ token-*.json
 
 # Agent tooling
 .atl/
+.codegraph/
 
 # Local scratch
 /tmp/
