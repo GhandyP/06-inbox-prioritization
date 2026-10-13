@@ -70,7 +70,7 @@ Commit identities are recorded as evidence once each task lands; they are never 
 | T3 | Deterministic ordering in `internal/priority` (`labelRank` -> `receivedAt` -> `messageID`, reproducible ties) with RED tests | S8 | inline | `fdc21bc` |
 | T4 | `internal/inbox`: `Message` + `Reader` interface + JSON fixture adapter + edge-case fixtures in `testdata/` with RED tests | S9, S10 | inline | `7fb75b6` |
 | T5 | `internal/inbox/gmail`: OAuth installed-app adapter, single `gmail.readonly` scope, token cached outside the repo, scope test | S4, S6, S11 | inline + verifier | `7f8b3c3`, `9e54ae9` |
-| T6 | `internal/classifier`: schema-constrained ADK Go v2 agent, one session per batch, no mutating tools, with RED tests | S7, S9 | inline | pending |
+| T6 | `internal/classifier`: schema-constrained ADK Go v2 agent, one session per batch, no mutating tools, with RED tests | S7, S9 | inline | `7859490` |
 | T7 | `internal/cli`: flags, wiring, text and JSON output, exit codes, with RED tests | S10 | inline | pending |
 | T8 | Honest README rewrite, Makefile, CI workflow (build, vet, gofmt, test), CHANGELOG | S2, S11 | inline | pending |
 | T9 | Independent verification of the whole candidate | S1-S11 | verifier | pending |
@@ -216,3 +216,20 @@ L22 — the memory provider was unavailable from T5 onward: every memory call ti
 `http://127.0.0.1:7437`, including after the server accepted the connection. This document is
 therefore the only durable record of T1-T5, and the standard memory mirror was not written. The
 failure is reported, not retried into extra ceremony.
+
+L23 — evidence (T6). Commit `7859490`. The ADK Go v2 API was mapped first by a read-only exploration
+over the module cache at `~/go/pkg/mod/google.golang.org/adk/v2@v2.6.0`. That is what found
+`llmagent.Config.OutputSchema` and confirmed that a nil `Tools` registers no tool at all, while
+`ModeTask` would add a `finish_task` tool. RED was observed twice: first as
+`missing go.sum entry for ... google.golang.org/genai` (a setup failure, fixed by `go mod tidy`), then
+as the expected build failure. GREEN: 16 test functions in `internal/classifier`, 68 across the module
+(27 priority + 13 inbox + 12 gmail + 16 classifier). `go build ./...` exit 0, `go vet ./...` exit 0
+(2m34s, backgrounded), `gofmt -l .` clean. `google.golang.org/adk/v2` is pinned at v2.6.0 and is now a
+direct requirement; it is the version whose `go >= 1.26.6` floor L10 pinned at T1. Three assertions
+were corrected before GREEN for a real type error: `priority.Rule` is not `string`, so
+`strings.Contains` needed an explicit conversion.
+
+L24 — decision (T6). `Responder` is exported even though `ADKResponder` is the only real
+implementation, because it is the seam that keeps the suite offline. Keeping it unexported and testing
+through an internal file would have hidden the contract from callers and made the agent untestable
+from outside the package.
